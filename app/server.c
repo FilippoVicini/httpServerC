@@ -1,11 +1,17 @@
 #include <errno.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
+bool starts_With(const char *pre, const char *str) {
+  size_t lenpre = strlen(pre), lenstr = strlen(str);
+  return lenstr < lenpre ? false : memcmp(pre, str, lenpre) == 0;
+}
 
 int main() {
   // Disable output buffering
@@ -59,8 +65,16 @@ int main() {
   printf("Client connected\n");
   send(fd, response, strlen(response), 0);
 
-  char *reply = "HTTP/1.1 200 OK\r\n\r\n";
-  int bytes_send = send(fd, reply, strlen(reply), 0);
+  char buffer[4096];
+  int n = read(fd, buffer, sizeof(buffer));
+
+  if (starts_With("GET / HTTP/1.1", buffer)) {
+    char *reply = "HTTP/1.1 200 OK\r\n\r\n";
+    int bytes_send = send(fd, reply, strlen(reply), 0);
+  } else {
+    char *reply = "HTTP/1.1 404 NOT FOUND\r\n\r\n";
+    int bytes_send = send(fd, reply, strlen(reply), 0);
+  }
 
   close(server_fd);
 
