@@ -13,6 +13,23 @@ bool starts_With(const char *pre, const char *str) {
   return lenstr < lenpre ? false : memcmp(pre, str, lenpre) == 0;
 }
 
+char *extract_between(const char *str, const char *p1, const char *p2) {
+  const char *i1 = strstr(str, p1);
+  if (i1 != NULL) {
+    const size_t pl1 = strlen(p1);
+    const char *i2 = strstr(i1 + pl1, p2);
+    if (p2 != NULL) {
+      /* Found both markers, extract text. */
+      const size_t mlen = i2 - (i1 + pl1);
+      char *ret = malloc(mlen + 1);
+      if (ret != NULL) {
+        memcpy(ret, i1 + pl1, mlen);
+        ret[mlen] = '\0';
+        return ret;
+      }
+    }
+  }
+}
 int main() {
   // Disable output buffering
   setbuf(stdout, NULL);
@@ -68,9 +85,35 @@ int main() {
   char buffer[4096];
   int n = read(fd, buffer, sizeof(buffer));
 
-  if (starts_With("GET / HTTP/1.1", buffer)) {
-    char *reply = "HTTP/1.1 200 OK\r\n\r\n";
-    int bytes_send = send(fd, reply, strlen(reply), 0);
+  printf("messgae %s\n", buffer);
+
+  if (starts_With("GET /echo/", buffer)) {
+    // Handle `/echo` request
+    // "GET /echo/abababab HTTP/1.1"
+
+    char *text = extract_between(buffer, "GET /echo/", " HTTP/1.1");
+    char *reply;
+    printf("output %s\n", text);
+    printf("size %lu\n", strlen(text));
+
+    char *msg;
+    asprintf(&msg,
+             "HTTP/1.1 200 OK\r\n"
+             "Content-Type: text/plain\r\n\r\n"
+             "Echo: %s",
+             text);
+
+    // Send the response
+    send(fd, msg, strlen(msg), 0);
+    printf("output %s", text);
+
+  } else if (starts_With("GET / HTTP/1.1", buffer)) {
+    // Handle `/` request
+    char *reply = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nWelcome "
+                  "to the root path!";
+    send(fd, reply, strlen(reply), 0);
+    printf("Handled / request\n");
+
   } else {
     char *reply = "HTTP/1.1 404 NOT FOUND\r\n\r\n";
     int bytes_send = send(fd, reply, strlen(reply), 0);
