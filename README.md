@@ -44,9 +44,42 @@ To test simply run
 and 
 `$ curl -v http://localhost:4221/abcd`
 
-Your server must respond to this request with a `404` response:
+Your server must respond to this request with a `404` response
 
+### Respond with body
+In this stage, you'll implement the `/echo/{str}` endpoint, which accepts a string and returns it in the response body.
+Your `/echo/{str}` endpoint must return a `200` response, with the response body set to given string, and with a Content-Type and Content-Length header.
+
+To test simply run 
+`$ ./your_program.sh`
+and 
+`$ curl -v http://localhost:4221/echo/abcd`
+
+this will return `abcd`
 ### Read Header
+In this stage, you'll implement the `/user-agent` endpoint, which reads the User-Agent request header and returns it in the response body.
+The User-Agent header describes the client's user agent.
+
+Here is an example: 
+```
+// Status line
+HTTP/1.1 200 OK               // Status code must be 200
+\r\n
+
+// Headers
+Content-Type: text/plain\r\n
+Content-Length: 12\r\n
+\r\n
+
+// Response body
+foobar/1.2.3                  // The value of `User-Agent`
+```
+
+To test simply run 
+`$ ./your_program.sh`
+and 
+`$ curl -v --header "User-Agent: foobar/1.2.3" http://localhost:4221/user-agent`
+
 
 ### Concurrent Connections 
 
