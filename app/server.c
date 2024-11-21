@@ -99,13 +99,11 @@ int main() {
     char *msg;
     asprintf(&msg,
              "HTTP/1.1 200 OK\r\n"
-             "Content-Type: text/plain\r\n\r\n"
-             "Echo: %s",
-             text);
+             "Content-Type: text/plain\r\n\r\n",
+             "Echo: %s", text);
 
-    // Send the response
     send(fd, msg, strlen(msg), 0);
-    printf("output %s", text);
+    printf("test output %s", text);
 
   } else if (starts_With("GET / HTTP/1.1", buffer)) {
     // Handle `/` request
@@ -114,9 +112,33 @@ int main() {
     send(fd, reply, strlen(reply), 0);
     printf("Handled / request\n");
 
-  } else {
+  } else if (starts_With("GET /user-agent HTTP/1.1", buffer)) {
+
+    char *text = extract_between(buffer, "User-Agent: ", "\r\n");
+    char *reply;
+    char *msg;
+    asprintf(&msg,
+             "HTTP/1.1 200 OK\r\n"
+             "Content-Type: text/plain\r\n"
+             "Content-Length: %lu\r\n\r\n"
+             "Echo: %s",
+             strlen(text) + 6, text);
+    send(fd, msg, strlen(msg), 0);
+    printf("output %s\n", text);
+    printf("size %lu\n", strlen(text));
+
+  }
+
+  else {
+
     char *reply = "HTTP/1.1 404 NOT FOUND\r\n\r\n";
     int bytes_send = send(fd, reply, strlen(reply), 0);
+  }
+
+  char *data = strstr(buffer, "\r\n\r\n");
+  if (data != NULL) {
+    data += 4;
+    // printf("data", data);
   }
 
   close(server_fd);
