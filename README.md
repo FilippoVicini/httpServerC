@@ -82,7 +82,21 @@ and
 
 
 ### Concurrent Connections 
+In this stage, you'll add support for concurrent connections.
+To test simply run `$ ./your_program.sh` and 
+```
+$ (sleep 3 && printf "GET / HTTP/1.1\r\n\r\n") | nc localhost 4221 &
+$ (sleep 3 && printf "GET / HTTP/1.1\r\n\r\n") | nc localhost 4221 &
+$ (sleep 3 && printf "GET / HTTP/1.1\r\n\r\n") | nc localhost 4221 &
+```
 
 ### Return a file
+In this stage, you'll implement the /files/{filename} endpoint, which returns a requested file to the client.
+The tester will execute your program with a `--directory` flag. The `--directory` flag specifies the directory where the files are stored, as an absolute path.
+
+`$ ./your_program.sh --directory /tmp/`
+
+The tester will then send two `GET` requests to the `/files/{filename}` endpoint on your server.
 
 ### Read Request body
+In this stage, you'll add support for the `POST` method of the `/files/{filename}` endpoint, which accepts text from the client and creates a new file with that text.
