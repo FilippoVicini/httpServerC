@@ -73,72 +73,75 @@ int main() {
     printf("Listen failed: %s \n", strerror(errno));
     return 1;
   }
+  while (1) {
+    printf("Waiting for a client to connect...\n");
+    client_addr_len = sizeof(client_addr);
 
-  printf("Waiting for a client to connect...\n");
-  client_addr_len = sizeof(client_addr);
+    char *response = "HTTP/1.1 200 OK\r\n\r\n";
+    int fd =
+        accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
+    printf("Client connected\n");
+    send(fd, response, strlen(response), 0);
 
-  char *response = "HTTP/1.1 200 OK\r\n\r\n";
-  int fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
-  printf("Client connected\n");
-  send(fd, response, strlen(response), 0);
+    char buffer[4096];
+    int n = read(fd, buffer, sizeof(buffer));
 
-  char buffer[4096];
-  int n = read(fd, buffer, sizeof(buffer));
+    printf("messgae %s\n", buffer);
 
-  printf("messgae %s\n", buffer);
+    if (starts_With("GET /echo/", buffer)) {
+      // Handle `/echo` request
+      // "GET /echo/abababab HTTP/1.1"
 
-  if (starts_With("GET /echo/", buffer)) {
-    // Handle `/echo` request
-    // "GET /echo/abababab HTTP/1.1"
+      char *text = extract_between(buffer, "GET /echo/", " HTTP/1.1");
+      char *reply;
+      printf("output %s\n", text);
+      printf("size %lu\n", strlen(text));
 
-    char *text = extract_between(buffer, "GET /echo/", " HTTP/1.1");
-    char *reply;
-    printf("output %s\n", text);
-    printf("size %lu\n", strlen(text));
+      char *msg;
+      asprintf(&msg,
+               "HTTP/1.1 200 OK\r\n"
+               "Content-Type: text/plain\r\n\r\n",
+               "Echo: %s", text);
 
-    char *msg;
-    asprintf(&msg,
-             "HTTP/1.1 200 OK\r\n"
-             "Content-Type: text/plain\r\n\r\n",
-             "Echo: %s", text);
+      send(fd, msg, strlen(msg), 0);
+      printf("test output %s", text);
 
-    send(fd, msg, strlen(msg), 0);
-    printf("test output %s", text);
+    } else if (starts_With("GET / HTTP/1.1", buffer)) {
+      // Handle `/` request
+      char *reply =
+          "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nWelcome "
+          "to the root path!";
+      send(fd, reply, strlen(reply), 0);
+      printf("Handled / request\n");
 
-  } else if (starts_With("GET / HTTP/1.1", buffer)) {
-    // Handle `/` request
-    char *reply = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nWelcome "
-                  "to the root path!";
-    send(fd, reply, strlen(reply), 0);
-    printf("Handled / request\n");
+    } else if (starts_With("GET /user-agent HTTP/1.1", buffer)) {
 
-  } else if (starts_With("GET /user-agent HTTP/1.1", buffer)) {
+      char *text = extract_between(buffer, "User-Agent: ", "\r\n");
+      char *reply;
+      char *msg;
+      asprintf(&msg,
+               "HTTP/1.1 200 OK\r\n"
+               "Content-Type: text/plain\r\n"
+               "Content-Length: %lu\r\n\r\n"
+               "Echo: %s",
+               strlen(text) + 6, text);
+      send(fd, msg, strlen(msg), 0);
+      printf("output %s\n", text);
+      printf("size %lu\n", strlen(text));
 
-    char *text = extract_between(buffer, "User-Agent: ", "\r\n");
-    char *reply;
-    char *msg;
-    asprintf(&msg,
-             "HTTP/1.1 200 OK\r\n"
-             "Content-Type: text/plain\r\n"
-             "Content-Length: %lu\r\n\r\n"
-             "Echo: %s",
-             strlen(text) + 6, text);
-    send(fd, msg, strlen(msg), 0);
-    printf("output %s\n", text);
-    printf("size %lu\n", strlen(text));
+    }
 
-  }
+    else {
 
-  else {
+      char *reply = "HTTP/1.1 404 NOT FOUND\r\n\r\n";
+      int bytes_send = send(fd, reply, strlen(reply), 0);
+    }
 
-    char *reply = "HTTP/1.1 404 NOT FOUND\r\n\r\n";
-    int bytes_send = send(fd, reply, strlen(reply), 0);
-  }
-
-  char *data = strstr(buffer, "\r\n\r\n");
-  if (data != NULL) {
-    data += 4;
-    // printf("data", data);
+    char *data = strstr(buffer, "\r\n\r\n");
+    if (data != NULL) {
+      data += 4;
+      // printf("data", data);
+    }
   }
 
   close(server_fd);
